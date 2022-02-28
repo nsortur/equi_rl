@@ -1,6 +1,7 @@
 from utils.parameters import *
 from agents.dqn_agent_com import DQNAgentCom
 from agents.dqn_agent_com_drq import DQNAgentComDrQ
+from agents.dqn_agent_com_drqv2 import DQNAgentComDrQv2
 from agents.curl_dqn_com import CURLDQNCom
 from networks.dqn_net import CNNCom
 from networks.equivariant_dqn_net import EquivariantCNNCom
@@ -30,11 +31,14 @@ def createAgent(test=False):
         n_theta = 3
 
     # setup agent
-    if alg in ['dqn_com', 'dqn_com_drq']:
+    if alg in ['dqn_com', 'dqn_com_drq', 'dqn_com_drqv2']:
         if alg == 'dqn_com':
             agent = DQNAgentCom(lr=lr, gamma=gamma, device=device, dx=dpos, dy=dpos, dz=dpos, dr=drot, n_p=n_p, n_theta=n_theta)
         elif alg == 'dqn_com_drq':
             agent = DQNAgentComDrQ(lr=lr, gamma=gamma, device=device, dx=dpos, dy=dpos, dz=dpos, dr=drot, n_p=n_p,
+                                   n_theta=n_theta)
+        elif alg == 'dqn_com_drqv2':
+            agent = DQNAgentComDrQv2(lr=lr, gamma=gamma, device=device, dx=dpos, dy=dpos, dz=dpos, dr=drot, n_p=n_p,
                                    n_theta=n_theta)
         else:
             raise NotImplementedError
