@@ -1,3 +1,5 @@
+from agents.ddpg_eq_drqv2 import DrQv2DDPG
+from networks.equivariant_ddpg_net import EquivariantDDPGActor, EquivariantDDPGCritic
 from utils.parameters import *
 from agents.dqn_agent_com import DQNAgentCom
 from agents.dqn_agent_com_drq import DQNAgentComDrQ
@@ -16,6 +18,7 @@ from networks.equivariant_sac_net import EquivariantSACActor, EquivariantSACCrit
 from networks.curl_sac_net import CURLSACCritic, CURLSACGaussianPolicy, CURLSACEncoderOri, CURLSACEncoder
 from networks.dqn_net import DQNComCURL, DQNComCURLOri
 
+
 def createAgent(test=False):
     print('initializing agent')
     obs_channel = 2
@@ -32,16 +35,19 @@ def createAgent(test=False):
     # setup agent
     if alg in ['dqn_com', 'dqn_com_drq']:
         if alg == 'dqn_com':
-            agent = DQNAgentCom(lr=lr, gamma=gamma, device=device, dx=dpos, dy=dpos, dz=dpos, dr=drot, n_p=n_p, n_theta=n_theta)
+            agent = DQNAgentCom(lr=lr, gamma=gamma, device=device, dx=dpos,
+                                dy=dpos, dz=dpos, dr=drot, n_p=n_p, n_theta=n_theta)
         elif alg == 'dqn_com_drq':
             agent = DQNAgentComDrQ(lr=lr, gamma=gamma, device=device, dx=dpos, dy=dpos, dz=dpos, dr=drot, n_p=n_p,
                                    n_theta=n_theta)
         else:
             raise NotImplementedError
         if model == 'cnn':
-            net = CNNCom((obs_channel, crop_size, crop_size), n_p=n_p, n_theta=n_theta).to(device)
+            net = CNNCom((obs_channel, crop_size, crop_size),
+                         n_p=n_p, n_theta=n_theta).to(device)
         elif model == 'equi':
-            net = EquivariantCNNCom(n_p=n_p, n_theta=n_theta, initialize=initialize).to(device)
+            net = EquivariantCNNCom(
+                n_p=n_p, n_theta=n_theta, initialize=initialize).to(device)
         else:
             raise NotImplementedError
         agent.initNetwork(net, initialize_target=not test)
@@ -53,10 +59,12 @@ def createAgent(test=False):
         else:
             raise NotImplementedError
         if model == 'cnn':
-            net = DQNComCURL((obs_channel, crop_size, crop_size), n_p, n_theta).to(device)
+            net = DQNComCURL((obs_channel, crop_size, crop_size),
+                             n_p, n_theta).to(device)
         # network from curl paper
         elif model == 'cnn_curl':
-            net = DQNComCURLOri((obs_channel, crop_size, crop_size), n_p, n_theta).to(device)
+            net = DQNComCURLOri(
+                (obs_channel, crop_size, crop_size), n_p, n_theta).to(device)
         else:
             raise NotImplementedError
         agent.initNetwork(net)
@@ -91,17 +99,25 @@ def createAgent(test=False):
         # pixel observation
         if obs_type == 'pixel':
             if model == 'cnn':
-                actor = SACGaussianPolicy((obs_channel, crop_size, crop_size), len(action_sequence)).to(device)
-                critic = SACCritic((obs_channel, crop_size, crop_size), len(action_sequence)).to(device)
+                actor = SACGaussianPolicy(
+                    (obs_channel, crop_size, crop_size), len(action_sequence)).to(device)
+                critic = SACCritic((obs_channel, crop_size, crop_size), len(
+                    action_sequence)).to(device)
             elif model == 'equi_actor':
-                actor = EquivariantSACActor((obs_channel, crop_size, crop_size), len(action_sequence), n_hidden=n_hidden, initialize=initialize, N=equi_n).to(device)
-                critic = SACCritic((obs_channel, crop_size, crop_size), len(action_sequence)).to(device)
+                actor = EquivariantSACActor((obs_channel, crop_size, crop_size), len(
+                    action_sequence), n_hidden=n_hidden, initialize=initialize, N=equi_n).to(device)
+                critic = SACCritic((obs_channel, crop_size, crop_size), len(
+                    action_sequence)).to(device)
             elif model == 'equi_critic':
-                actor = SACGaussianPolicy((obs_channel, crop_size, crop_size), len(action_sequence)).to(device)
-                critic = EquivariantSACCritic((obs_channel, crop_size, crop_size), len(action_sequence), n_hidden=n_hidden, initialize=initialize, N=equi_n).to(device)
+                actor = SACGaussianPolicy(
+                    (obs_channel, crop_size, crop_size), len(action_sequence)).to(device)
+                critic = EquivariantSACCritic((obs_channel, crop_size, crop_size), len(
+                    action_sequence), n_hidden=n_hidden, initialize=initialize, N=equi_n).to(device)
             elif model == 'equi_both':
-                actor = EquivariantSACActor((obs_channel, crop_size, crop_size), len(action_sequence), n_hidden=n_hidden, initialize=initialize, N=equi_n).to(device)
-                critic = EquivariantSACCritic((obs_channel, crop_size, crop_size), len(action_sequence), n_hidden=n_hidden, initialize=initialize, N=equi_n).to(device)
+                actor = EquivariantSACActor((obs_channel, crop_size, crop_size), len(
+                    action_sequence), n_hidden=n_hidden, initialize=initialize, N=equi_n).to(device)
+                critic = EquivariantSACCritic((obs_channel, crop_size, crop_size), len(
+                    action_sequence), n_hidden=n_hidden, initialize=initialize, N=equi_n).to(device)
             else:
                 raise NotImplementedError
         else:
@@ -127,8 +143,10 @@ def createAgent(test=False):
         else:
             raise NotImplementedError
         if model == 'cnn':
-            actor = CURLSACGaussianPolicy(CURLSACEncoder((obs_channel, crop_size, crop_size)).to(device), action_dim=len(action_sequence)).to(device)
-            critic = CURLSACCritic(CURLSACEncoder((obs_channel, crop_size, crop_size)).to(device), action_dim=len(action_sequence)).to(device)
+            actor = CURLSACGaussianPolicy(CURLSACEncoder((obs_channel, crop_size, crop_size)).to(
+                device), action_dim=len(action_sequence)).to(device)
+            critic = CURLSACCritic(CURLSACEncoder((obs_channel, crop_size, crop_size)).to(
+                device), action_dim=len(action_sequence)).to(device)
         # ferm paper network
         elif model == 'cnn_ferm':
             actor = CURLSACGaussianPolicy(CURLSACEncoderOri((obs_channel, crop_size, crop_size)).to(device),
@@ -138,6 +156,29 @@ def createAgent(test=False):
         else:
             raise NotImplementedError
         agent.initNetwork(actor, critic)
+
+    # TODO: put this in the right place and figure out parameters
+    elif alg in ['ddpg_drqv2']:
+        ddpg_lr = (actor_lr, critic_lr)
+        if alg == 'ddpg_drqv2':
+            # configured schedule for hard tasks (see configs in DrqV2 repo for other schedules)
+            agent = DrQv2DDPG('linear(1.0,0.1,2000000', 0.3, lr=ddpg_lr, gamma=gamma, device=device,
+                              dx=dpos, dy=dpos, dz=dpos, dr=drot, n_a=len(action_sequence), tau=tau,
+                              target_update_interval=2)
+        else:
+            raise NotImplementedError
+        if obs_type == 'pixel':
+            if model == 'equi_both':
+                actor = EquivariantDDPGActor((obs_channel, crop_size, crop_size), len(action_sequence),
+                                             n_hidden=n_hidden, N=equi_n).to(device)
+                critic = EquivariantDDPGCritic((obs_channel, crop_size, crop_size), len(action_sequence),
+                                               n_hidden=n_hidden, N=equi_n).to(device)
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
+        agent.initNetwork(actor, critic, True)
+
     else:
         raise NotImplementedError
     agent.aug = aug
