@@ -95,6 +95,7 @@ class EquivariantDDPGActor(torch.nn.Module):
         # n_out of encoder is hidden_dimension of actor network
 
         self.feature_dim = feature_dim
+        self.obs_channels = feature_dim[0]
         self.action_shape = action_shape
 
         self.network = torch.nn.Sequential(
@@ -121,12 +122,11 @@ class EquivariantDDPGActor(torch.nn.Module):
             TruncatedNormal: A distribution over actions
         """
         assert obs.shape[1:
-                         ] == self.feature_dim, f"Observation shape must be {self.feature_dim}"
+                         ] == self.feature_dim, f"Observation shape must be {self.feature_dim}, current is {obs.shape[1:]}"
         batch_size = obs.shape[0]
-        obs_channels = obs.shape[1]
 
         geo = nn.GeometricTensor(obs, nn.FieldType(self.r2_rot,
-                                                   obs_channels * [self.r2_rot.trivial_repr]))
+                                                   self.obs_channels * [self.r2_rot.trivial_repr]))
         output = self.network(geo).tensor.reshape(batch_size, -1)
         act_xy = output[:, 0:2]
         act_inv = output[:, 2:self.action_shape]
@@ -149,6 +149,7 @@ class EquivariantDDPGCritic(torch.nn.Module):
         self.feature_dim = feature_dim
         self.action_shape = action_shape
         self.hidden_dim = hidden_dim
+        self.obs_channels = feature_dim[0]
 
         # encoder must be separate so we can get state information, then pass into critics
         self.encoder = EquivariantEncoder(feature_dim[0], hidden_dim, N=N)
@@ -188,7 +189,7 @@ class EquivariantDDPGCritic(torch.nn.Module):
                       kernel_size=1, padding=0)
         )
 
-    def forward(self, obs: torch.Tensor, act: torch.Tensor) -> tuple(torch.Tensor, torch.Tensor):
+    def forward(self, obs: torch.Tensor, act: torch.Tensor):
         """Evaluates estimated q-value of state, action pair
 
         Args:
@@ -199,10 +200,9 @@ class EquivariantDDPGCritic(torch.nn.Module):
             tuple(torch.Tensor, torch.Tensor): Q-values for the first and second critic
         """
         assert obs.shape[1:
-                         ] == self.feature_dim, f"Observation shape must be {self.feature_dim}"
-        assert act.shape == self.action_shape, f"Action shape must be {self.action_shape}"
-        batch_size = obs[0]
-        obs_channels = obs[1]
+                         ] == self.feature_dim, f"Observation shape must be {self.feature_dim}, current is {obs.shape[1:]}"
+        assert act.shape[1:][0] == self.action_shape, f"Action shape must be {self.action_shape}, current is {act.shape[1:][0]}"
+        batch_size = obs.shape[0]
 
         # separate action into into invariant and equivariant parts
         dxy = act[:, 1:3]
@@ -212,7 +212,7 @@ class EquivariantDDPGCritic(torch.nn.Module):
         # TODO: move creating geo to encoder for more consistent code (caller just specifies
         # non-geometric tensor)
         obs_geo = nn.GeometricTensor(obs, nn.FieldType(self.r2_rot,
-                                                       obs_channels * [self.r2_rot.trivial_repr]))
+                                                       self.obs_channels * [self.r2_rot.trivial_repr]))
         obs_encoded = self.encoder(obs_geo)
         cat = torch.cat((obs_encoded.tensor, inv_act.reshape(
             batch_size, n_inv, 1, 1), dxy.reshape(batch_size, 2, 1, 1)), dim=1)
@@ -220,7 +220,7 @@ class EquivariantDDPGCritic(torch.nn.Module):
                                          # output of encoder, invariant actions, and xy equivariant actions
                                          nn.FieldType(self.r2_rot, self.hidden_dim * [self.r2_rot.regular_repr] +
                                                       n_inv * [self.r2_rot.trivial_repr] +
-                                                      [self.c4_act.irrep(1)]))
+                                                      [self.r2_rot.irrep(1)]))
 
         out1 = self.critic1(obs_act_geo).tensor.reshape(batch_size, 1)
         out2 = self.critic1(obs_act_geo).tensor.reshape(batch_size, 1)

@@ -166,7 +166,7 @@ def createAgent(test=False):
         ddpg_lr = (actor_lr, critic_lr)
         if alg == 'ddpg_drqv2':
             # configured schedule for hard tasks (see configs in DrqV2 repo for other schedules)
-            agent = DrQv2DDPG('linear(1.0,0.1,2000000', 0.3, lr=ddpg_lr, gamma=gamma, device=device,
+            agent = DrQv2DDPG('linear(1.0,0.1,2000000)', 0.3, lr=ddpg_lr, gamma=gamma, device=device,
                               dx=dpos, dy=dpos, dz=dpos, dr=drot, n_a=len(action_sequence), tau=tau,
                               target_update_interval=2)
         else:
@@ -174,13 +174,17 @@ def createAgent(test=False):
         if obs_type == 'pixel':
             if model == 'equi_both':
                 actor = EquivariantDDPGActor((obs_channel, crop_size, crop_size), len(action_sequence),
-                                             n_hidden=n_hidden, N=equi_n).to(device)
+                                             hidden_dim=n_hidden, N=equi_n).to(device)
                 critic = EquivariantDDPGCritic((obs_channel, crop_size, crop_size), len(action_sequence),
-                                               n_hidden=n_hidden, N=equi_n).to(device)
+                                               hidden_dim=n_hidden, N=equi_n).to(device)
             else:
                 raise NotImplementedError
         else:
             raise NotImplementedError
+        actor = EquivariantDDPGActor((obs_channel, crop_size, crop_size), len(action_sequence),
+                                     hidden_dim=n_hidden, N=equi_n).to(device)
+        critic = EquivariantDDPGCritic((obs_channel, crop_size, crop_size), len(action_sequence),
+                                       hidden_dim=n_hidden, N=equi_n).to(device)
         agent.initNetwork(actor, critic, True)
 
     else:
