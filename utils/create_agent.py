@@ -43,7 +43,7 @@ def createAgent(test=False):
                                    n_theta=n_theta)
         elif alg == 'dqn_com_drqv2':
             agent = DQNAgentComDrQv2(lr=lr, gamma=gamma, device=device, dx=dpos, dy=dpos, dz=dpos, dr=drot, n_p=n_p,
-                                   n_theta=n_theta)
+                                     n_theta=n_theta)
         else:
             raise NotImplementedError
         if model == 'cnn':
@@ -161,7 +161,7 @@ def createAgent(test=False):
             raise NotImplementedError
         agent.initNetwork(actor, critic)
 
-    # TODO: put this in the right place and figure out parameters
+    # TODO: put this in the right place and figure out parameters like easy, medium, hard scheduling
     elif alg in ['ddpg_drqv2']:
         ddpg_lr = (actor_lr, critic_lr)
         if alg == 'ddpg_drqv2':
@@ -181,10 +181,6 @@ def createAgent(test=False):
                 raise NotImplementedError
         else:
             raise NotImplementedError
-        actor = EquivariantDDPGActor((obs_channel, crop_size, crop_size), len(action_sequence),
-                                     hidden_dim=n_hidden, N=equi_n).to(device)
-        critic = EquivariantDDPGCritic((obs_channel, crop_size, crop_size), len(action_sequence),
-                                       hidden_dim=n_hidden, N=equi_n).to(device)
         agent.initNetwork(actor, critic, True)
 
     else:

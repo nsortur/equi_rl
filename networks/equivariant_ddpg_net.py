@@ -201,7 +201,8 @@ class EquivariantDDPGCritic(torch.nn.Module):
         """
         assert obs.shape[1:
                          ] == self.feature_dim, f"Observation shape must be {self.feature_dim}, current is {obs.shape[1:]}"
-        assert act.shape[1:][0] == self.action_shape, f"Action shape must be {self.action_shape}, current is {act.shape[1:][0]}"
+        assert act.shape[1:
+                         ][0] == self.action_shape, f"Action shape must be {self.action_shape}, current is {act.shape[1:][0]}"
         batch_size = obs.shape[0]
 
         # separate action into into invariant and equivariant parts

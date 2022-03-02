@@ -5,9 +5,9 @@ from agents.a2c_base import A2CBase
 from copy import deepcopy
 import numpy as np
 
-import utils
 from utils.ddpg_utils import RandomShiftsAug
 from utils.ddpg_utils import schedule
+
 
 class DrQv2DDPG(A2CBase):
     """
@@ -52,9 +52,11 @@ class DrQv2DDPG(A2CBase):
             is_experts.append(d.expert)
         states_tensor = torch.tensor(np.stack(states)).long().to(self.device)
         obs_tensor = torch.tensor(np.stack(images)).to(self.device)
-        # add augmentation to observations in batch
+
+        # add DrQv2 augmentation to observations in batch
         obs_tensor = self.augm(obs_tensor.float())
         obs_tensor = obs_tensor.byte()
+
         if len(obs_tensor.shape) == 3:
             obs_tensor = obs_tensor.unsqueeze(1)
         action_tensor = torch.tensor(np.stack(xys)).to(self.device)
@@ -62,9 +64,11 @@ class DrQv2DDPG(A2CBase):
         next_states_tensor = torch.tensor(
             np.stack(next_states)).long().to(self.device)
         next_obs_tensor = torch.tensor(np.stack(next_obs)).to(self.device)
+
         # augment next observations in batch
         next_obs_tensor = self.augm(next_obs_tensor.float())
         next_obs_tensor = next_obs_tensor.byte()
+
         if len(next_obs_tensor.shape) == 3:
             next_obs_tensor = next_obs_tensor.unsqueeze(1)
         dones_tensor = torch.tensor(np.stack(dones)).int()
@@ -132,12 +136,8 @@ class DrQv2DDPG(A2CBase):
         """
         batch_size, states, obs, action, rewards, next_states, next_obs, non_final_masks, step_lefts, is_experts = self._loadLossCalcDict()
         with torch.no_grad():
-            stddev = schedule(self.stddev_schedule, step)
-            # TODO figure out when to use target net and not, del actor targ
             next_action = self.forwardActor(next_states, next_obs)
-#             dist = self.actor(next_obs, stddev)
             # TODO ensure that sampling adds noise
-#             target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
             target_Q1, target_Q2 = self.forwardCritic(next_states,
                                                       next_obs,
                                                       next_action,
@@ -147,7 +147,6 @@ class DrQv2DDPG(A2CBase):
             target_V = torch.min(target_Q1, target_Q2)
             target_Q = rewards + non_final_masks * self.gamma * target_V
 
-#         q1, q2 = self.critic(obs, action)
         q1, q2 = self.forwardCritic(states, obs, action)
         q1 = q1.reshape(batch_size)
         q2 = q2.reshape(batch_size)
@@ -187,12 +186,7 @@ class DrQv2DDPG(A2CBase):
             tensor: actor loss
         """
         batch_size, states, obs, action, rewards, next_states, next_obs, non_final_masks, step_lefts, is_experts = self._loadLossCalcDict()
-        stddev = schedule(self.stddev_schedule, step)
-#         dist = self.actor(obs, stddev)
         action = self.forwardActor(states, obs)
-        # log_prob = dist.log_prob(action).sum(-1, keepdim=True)
-
-#         q1, q2 = self.critic(obs, action)
         q1, q2 = self.forwardCritic(states, obs, action)
         q = torch.min(q1, q2)
 
@@ -225,9 +219,9 @@ class DrQv2DDPG(A2CBase):
         self.num_update += 1
         if self.num_update % self.target_update_interval == 0:
             self.targetSoftUpdate()
-        return (q1_loss.item(), q2_loss.item(), actor_loss.item()), td_error 
+        return (q1_loss.item(), q2_loss.item(), actor_loss.item()), td_error
 
-    def forwardActor(self, state, obs, target_net=False, to_cpu=False):
+    def forwardActor(self, state, obs, to_cpu=False):
         """
         Forward pass the actor network
         :param state: gripper state
@@ -236,12 +230,14 @@ class DrQv2DDPG(A2CBase):
         :param to_cpu: move the output to cpu
         :return: actor output
         """
-        actor = self.actor if not target_net else self.actor_target
-        state_tile = state.reshape(state.size(0), 1, 1, 1).repeat(1, 1, obs.shape[2], obs.shape[3])
+        actor = self.actor
+        state_tile = state.reshape(state.size(0), 1, 1, 1).repeat(
+            1, 1, obs.shape[2], obs.shape[3])
         stacked = torch.cat([obs, state_tile], dim=1)
         # schedule stddev based on current step
         stddev = schedule(self.stddev_schedule, self.num_update)
-        output = actor(stacked.to(self.device), stddev).sample(clip=self.stddev_clip)
+        output = actor(stacked.to(self.device), stddev).sample(
+            clip=self.stddev_clip)
         if to_cpu:
             output = output.cpu()
         return output
