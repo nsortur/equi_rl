@@ -150,6 +150,9 @@ class DrQv2DDPG(A2CBase):
         q1, q2 = self.forwardCritic(states, obs, action)
         q1 = q1.reshape(batch_size)
         q2 = q2.reshape(batch_size)
+
+        assert(q1.shape == target_Q.shape)
+        assert(q2.shape == target_Q.shape)
         q1_loss = F.mse_loss(q1, target_Q)
         q2_loss = F.mse_loss(q2, target_Q)
         with torch.no_grad():
